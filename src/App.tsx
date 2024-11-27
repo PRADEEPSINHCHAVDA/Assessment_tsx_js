@@ -14,21 +14,36 @@ export function App() {
   const { data: employees, ...employeeUtils } = useEmployees()
   const { data: paginatedTransactions, ...paginatedTransactionsUtils } = usePaginatedTransactions()
   const { data: transactionsByEmployee, ...transactionsByEmployeeUtils } = useTransactionsByEmployee()
-  const [isLoading, setIsLoading] = useState(false)
-
+  const [isLoading, setIsLoading] = useState(false);
+//for bug 5 part 1
+  const[isEmployeesloading, setIsEmployeesLoading]=useState(false);
+  //
   const transactions = useMemo(
     () => paginatedTransactions?.data ?? transactionsByEmployee ?? null,
     [paginatedTransactions, transactionsByEmployee]
-  )
+  );
 
+  //bug 6 part 1
+  const isPaginated =paginatedTransactions !==null;
+  const hasMorePages = paginatedTransactions?.nextPage!==null;
+
+//
   const loadAllTransactions = useCallback(async () => {
-    setIsLoading(true)
-    transactionsByEmployeeUtils.invalidateData()
+  // 
+  
+    setIsEmployeesLoading(true);
+    //
+    setIsLoading(true);
+    transactionsByEmployeeUtils.invalidateData();
+    //
+    await Promise.all([
+      employeeUtils.fetchAll().finally(()=> setIsEmployeesLoading(false)),// for employees
+      paginatedTransactionsUtils.fetchAll().finally(()=>setIsLoading(false)),
 
-    await employeeUtils.fetchAll()
-    await paginatedTransactionsUtils.fetchAll()
+    ]);
+    
 
-    setIsLoading(false)
+    
   }, [employeeUtils, paginatedTransactionsUtils, transactionsByEmployeeUtils])
 
   const loadTransactionsByEmployee = useCallback(
@@ -53,7 +68,7 @@ export function App() {
         <hr className="RampBreak--l" />
 
         <InputSelect<Employee>
-          isLoading={isLoading}
+          isLoading={isEmployeesloading} //loading state for employee
           defaultValue={EMPTY_EMPLOYEE}
           items={employees === null ? [] : [EMPTY_EMPLOYEE, ...employees]}
           label="Filter by employee"
@@ -65,7 +80,14 @@ export function App() {
           onChange={async (newValue) => {
             if (newValue === null) {
               return
-            }
+            }  // for bug 4
+              if(newValue.id===EMPTY_EMPLOYEE.id){
+                await loadAllTransactions();
+              }else{
+                await loadTransactionsByEmployee(newValue.id)
+              }
+//
+
 
             await loadTransactionsByEmployee(newValue.id)
           }}
@@ -76,15 +98,16 @@ export function App() {
         <div className="RampGrid">
           <Transactions transactions={transactions} />
 
-          {transactions !== null && (
+          {isPaginated && hasMorePages && transactions !== null  &&(
             <button
               className="RampButton"
               disabled={paginatedTransactionsUtils.loading}
               onClick={async () => {
-                await loadAllTransactions()
+                setIsLoading(true);
+                await paginatedTransactionsUtils.fetchAll().finally(()=>setIsLoading(false));
               }}
             >
-              View More
+              {paginatedTransactionsUtils.loading ?"loading...":"View More"}
             </button>
           )}
         </div>

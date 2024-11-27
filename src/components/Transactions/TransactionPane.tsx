@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { InputCheckbox } from "../InputCheckbox"
+import { InputCheckbox } from "components/InputCheckbox"
 import { TransactionPaneComponent } from "./types"
 
 export const TransactionPane: TransactionPaneComponent = ({
